@@ -1,0 +1,104 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+require 'yaml'
+
+
+#  output helper
+if ARGV.delete('--verbose') || ARGV.delete('-v')
+  def verbose(msg); puts msg end
+else
+  def verbose(msg); end
+end
+
+
+
+CONFIG_FILES = [ '/etc/switch-ruby.conf', ENV['HOME'] + '/.switch-ruby.conf', ENV['PWD'] + '/switch-ruby.conf']
+
+config_file = CONFIG_FILES.detect{|file| File.exist?(file)}
+
+unless config_file
+  puts "Config file not found. Check out README.rdoc for details."
+  exit 1
+end
+
+
+verbose("Using config file #{config_file}.")
+
+
+CONFIGURATION = File.open(config_file) do |file|
+  YAML.load(file)
+end
+
+TARGET_BIN_DIR = CONFIGURATION['path']
+
+# the following conversion comes very handy
+DATA = Hash[CONFIGURATION['versions'].collect{|data| [data[0].to_s, {:path => data[1]}]}]
+
+
+
+verbose('Checking configuration and fetching version names...') 
+
+DATA.each do |key, value|
+  begin
+    cmd = "#{value[:path]}/bin/ruby --version"
+    verbose(cmd)
+    value[:name] = `#{cmd}`
+    verbose('=> ' + value[:name])
+  rescue
+    puts "WARNING: version #{key} was not found on system. Check your configuration."
+    value[:err] = true
+    #versions.delete(value[:call])
+  end
+end
+
+verbose ''
+
+
+switch_to = ARGV[-1]
+
+if ARGV.include?('--help') || ARGV.include?('-h') ||
+  ARGV.empty? || !switch_to || !DATA[switch_to] || DATA[switch_to][:err] == true
+
+  puts "Usage: #{$0} [OPTION]... [ruby version]"
+  puts
+  puts "Available ruby versions:"
+  DATA.each do |key, value|
+    puts(key.ljust(16) + ' ' + value[:name]) unless value[:err] == true
+  end
+  puts
+  puts 'OPTIONS:'
+  puts '-h, --help       Show this message'
+  puts '-v, --verbose    Be more chatty'
+  puts
+  exit 1
+end
+
+
+switch_to = DATA[switch_to]
+
+
+cmd = "ls #{switch_to[:path]}/bin"
+
+verbose 'Fetching list of executables...'
+verbose cmd
+
+executables = `#{cmd}`.split
+verbose "=> [#{executables.join(' ')}]"
+verbose ''
+
+verbose 'Creating symbolic links...'
+
+executables.each do |file|
+  target_sym_link = "#{TARGET_BIN_DIR}/#{file}"
+  if (File.exist?(target_sym_link) && File.writable?(target_sym_link)) ||
+        File.writable?(File.dirname(target_sym_link))
+    cmd = "ln -sf #{switch_to[:path]}/bin/#{file} #{target_sym_link}"
+    verbose cmd
+    `#{cmd}`
+  else
+    puts "ERROR: no permission to write #{target_sym_link}"
+  end
+end
+
+
