@@ -13,7 +13,7 @@ executables:
   $ sudo mkdir -p /usr/switch-ruby/bin
   
 Now make sure it will be the first directory when looking for executables.
-Put the following line in your +/etc/profile+ or +.bash.rc+ files:
+Put the following line in your <tt>/etc/profile</tt> or <tt>~/.bash.rc</tt> files:
 
   export PATH=/usr/switch-ruby/bin:$PATH
 
@@ -21,7 +21,7 @@ Put the following line in your +/etc/profile+ or +.bash.rc+ files:
 
   alias sudo='sudo env PATH=$PATH'
 
-Copy the file +switch-ruby+ into +/usr/sbin+ and apply owner and mods:
+Copy the file <tt>switch-ruby</tt> into <tt>/usr/sbin</tt> and apply owner and mods:
 
   $ sudo cp ./switch-ruby /usr/switch-ruby/bin/
   $ sudo chown root switch-ruby
@@ -33,7 +33,7 @@ directory:
 
   $ ./configure --prefix=/usr/local/ruby-1.9.1-p243
 
-+switch-ruby+ will search for a config file in the following order:
+<tt>switch-ruby</tt> will search for a config file in the following order:
 
   /etc/switch-ruby.conf
   ~/.switch-ruby.conf
