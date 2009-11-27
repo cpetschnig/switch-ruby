@@ -13,7 +13,7 @@ end
 
 
 
-CONFIG_FILES = [ '/etc/switch-ruby.conf', ENV['HOME'] + '/.switch-ruby.conf', ENV['PWD'] + '/switch-ruby.conf']
+CONFIG_FILES = [ '/etc/switch-ruby.conf', ENV['HOME'] + '/.switch-ruby.conf', `pwd`.strip + '/switch-ruby.conf']
 
 config_file = CONFIG_FILES.detect{|file| File.exist?(file)}
 
@@ -23,6 +23,7 @@ unless config_file
 end
 
 
+verbose ''
 verbose("Using config file #{config_file}.")
 
 
@@ -37,6 +38,7 @@ DATA = Hash[CONFIGURATION['versions'].collect{|data| [data[0].to_s, {:path => da
 
 
 
+verbose ''
 verbose('Checking configuration and fetching version names...') 
 
 DATA.each do |key, value|
@@ -52,8 +54,8 @@ DATA.each do |key, value|
   end
 end
 
-verbose ''
 
+verbose ''
 
 switch_to = ARGV[-1]
 
@@ -85,10 +87,12 @@ verbose cmd
 
 executables = `#{cmd}`.split
 verbose "=> [#{executables.join(' ')}]"
-verbose ''
 
+verbose ''
 verbose 'Creating symbolic links...'
 
+success = {:total => true, :partial => false}
+ 
 executables.each do |file|
   target_sym_link = "#{TARGET_BIN_DIR}/#{file}"
   if (File.exist?(target_sym_link) && File.writable?(target_sym_link)) ||
@@ -96,9 +100,19 @@ executables.each do |file|
     cmd = "ln -sf #{switch_to[:path]}/bin/#{file} #{target_sym_link}"
     verbose cmd
     `#{cmd}`
+    success[:partial] |= true
   else
     puts "ERROR: no permission to write #{target_sym_link}"
+    success[:total] = false
   end
 end
 
+
+if success[:total]
+  puts "=> You are now using #{switch_to[:name]}"
+elsif success[:partial]
+  puts 'WARNING: some operations failed.'
+else
+  puts 'ERROR.'
+end
 
