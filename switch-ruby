@@ -13,46 +13,67 @@ end
 
 
 
-CONFIG_FILES = [ '/etc/switch-ruby.conf', ENV['HOME'] + '/.switch-ruby.conf', `pwd`.strip + '/switch-ruby.conf']
+SR_BASE_DIR = ENV['SWITCH_RUBY_BASE_DIR'] || "#{ENV['HOME']}/.switch-ruby"
 
-config_file = CONFIG_FILES.detect{|file| File.exist?(file)}
-
-unless config_file
-  puts "Config file not found. Check out README.rdoc for details."
+unless File.exist?(SR_BASE_DIR) && File.directory?(SR_BASE_DIR)
+  # TODO: a lot!
+  puts "Directory #{SR_BASE_DIR} does not exist. Aborting."
   exit 1
 end
 
 
-verbose ''
-verbose("Using config file #{config_file}.")
+class RubyVersion
+  attr_reader :version_short, :version, :path
+  attr_accessor :sort_index
+  def initialize(bin_ruby_path)
+    @bin_ruby = bin_ruby_path
+    @path = File.expand_path('../..', bin_ruby_path)
+    @version = `#{bin_ruby_path} --version`
+    #@version = "#{@version_string} located at #{bin_ruby_path}"
+    @version_short = `#{bin_ruby_path} -e "puts RUBY_VERSION"`.strip
+    @sort_index = 0
+    #@index = 0
+  end
+  def switch_to_active!
+    cmd = %|ln -sf #{@path}/bin #{SR_BASE_DIR}/bin|
+    verbose cmd
+    `#{cmd}`
+  end
+  def sort_key  # TODO: implement <=>
+    [@short_version, @sort_index, @version]
+    'asdf'
+  end
+  def self.all
+    @@all
+  end
+  def self.find_all
+    # find all ruby binaries, but reject those, that are sym-linked
+    paths = Dir["#{SR_BASE_DIR}/*/bin/ruby"].reject{|path| path == "#{SR_BASE_DIR}/bin/bin/ruby"}
+    verbose paths
+    #paths << ...  TODO: there may be more at different locations; read config files
+    all = paths.uniq.map do |path|
+      RubyVersion.new(path)
+    end.sort_by do |ruby|
+      ruby.sort_key
+    end.reverse
 
+    temp_ar = []
+    all.each do |ruby|
+      version_doubles = temp_ar.select{|obj| obj.version_short == ruby.version_short}
+      ruby.sort_index = version_doubles.count
+      #@@all[ruby.path] = ruby
+      temp_ar << ruby
+    end
 
-CONFIGURATION = File.open(config_file) do |file|
-  YAML.load(file)
-end
-
-TARGET_BIN_DIR = CONFIGURATION['path']
-
-# the following conversion comes very handy
-DATA = Hash[CONFIGURATION['versions'].collect{|data| [data[0].to_s, {:path => data[1]}]}]
-
-
-
-verbose ''
-verbose('Checking configuration and fetching version names...') 
-
-DATA.each do |key, value|
-  begin
-    cmd = "#{value[:path]}/bin/ruby --version"
-    verbose(cmd)
-    value[:name] = `#{cmd}`
-    verbose('=> ' + value[:name])
-  rescue
-    puts "WARNING: version #{key} was not found on system. Check your configuration."
-    value[:err] = true
-    #versions.delete(value[:call])
+    @@all = temp_ar.sort_by{|ruby| ruby.sort_key}
   end
 end
+
+
+
+verbose 'Fetching all available versions of Ruby...'
+
+RubyVersion.find_all
 
 
 verbose ''
@@ -60,13 +81,19 @@ verbose ''
 switch_to = ARGV[-1]
 
 if ARGV.include?('--help') || ARGV.include?('-h') ||
-  ARGV.empty? || !switch_to || !DATA[switch_to] || DATA[switch_to][:err] == true
+    ARGV.empty? || (switch_to =~ /\d/).nil? ||
+    (target = RubyVersion.all[switch_to.to_i - 1]).nil?
 
-  puts "Usage: #{$0} [OPTION]... [ruby version]"
+  puts "Usage: #{$0} [OPTION]... [Ruby Version index]"
   puts
-  puts "Available ruby versions:"
-  DATA.each do |key, value|
-    puts(key.ljust(16) + ' ' + value[:name]) unless value[:err] == true
+  puts "Available Ruby Versions:"
+  #RubyVersion.all.values.sort_by{|ruby| ruby.sort_key}.each_with_index do |ruby, index|
+  RubyVersion.all.each_with_index do |ruby, index|
+    #ruby.index = index
+    puts
+    puts "#{"#{index + 1}.".ljust(3)} RUBY_VERSION      => #{ruby.version_short}"
+    puts "    RUBY_DESCRIPTION  => #{ruby.version}"
+    puts "    Location          => #{ruby.path}"
   end
   puts
   puts 'OPTIONS:'
@@ -77,42 +104,8 @@ if ARGV.include?('--help') || ARGV.include?('-h') ||
 end
 
 
-switch_to = DATA[switch_to]
+target.switch_to_active!
 
 
-cmd = "ls #{switch_to[:path]}/bin"
-
-verbose 'Fetching list of executables...'
-verbose cmd
-
-executables = `#{cmd}`.split
-verbose "=> [#{executables.join(' ')}]"
-
-verbose ''
-verbose 'Creating symbolic links...'
-
-success = {:total => true, :partial => false}
- 
-executables.each do |file|
-  target_sym_link = "#{TARGET_BIN_DIR}/#{file}"
-  if (File.exist?(target_sym_link) && File.writable?(target_sym_link)) ||
-        File.writable?(File.dirname(target_sym_link))
-    cmd = "ln -sf #{switch_to[:path]}/bin/#{file} #{target_sym_link}"
-    verbose cmd
-    `#{cmd}`
-    success[:partial] |= true
-  else
-    puts "ERROR: no permission to write #{target_sym_link}"
-    success[:total] = false
-  end
-end
-
-
-if success[:total]
-  puts "=> You are now using #{switch_to[:name]}"
-elsif success[:partial]
-  puts 'WARNING: some operations failed.'
-else
-  puts 'ERROR.'
-end
+puts "You are now using #{`ruby -v`}"
 
