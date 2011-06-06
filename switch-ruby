@@ -35,7 +35,7 @@ class RubyVersion
     #@index = 0
   end
   def switch_to_active!
-    cmd = %|ln -sf #{@path}/bin #{SR_BASE_DIR}/bin|
+    cmd = %|ln -nfs #{@path}/bin #{SR_BASE_DIR}/bin|
     verbose cmd
     `#{cmd}`
   end
