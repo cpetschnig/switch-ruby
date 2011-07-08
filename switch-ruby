@@ -38,6 +38,15 @@ class RubyVersion
     cmd = %|ln -nfs #{@path}/bin #{SR_BASE_DIR}/bin|
     verbose cmd
     `#{cmd}`
+    if File.exist?("#{@path}/.gemrc")
+      cmd = %|cp #{@path}/.gemrc #{ENV['HOME']}/.gemrc|
+      verbose cmd
+      `#{cmd}`
+    elsif File.exist?("#{SR_BASE_DIR}/.gemrc")
+      cmd = %|cp #{SR_BASE_DIR}/.gemrc #{ENV['HOME']}/.gemrc|
+      verbose cmd
+      `#{cmd}`
+    end
   end
   def sort_key  # TODO: implement <=>
     [@short_version, @sort_index, @version]
