@@ -2,59 +2,71 @@
 
 == Usage
 
-  $ switch-ruby 1.9
-  => You are now using ruby 1.9.1p243 (2009-07-16 revision 24175) [i686-linux]
+  $ switch-ruby
+  Usage: /usr/local/bin/switch-ruby [OPTION]... [Ruby Version index]
+  
+  Available Ruby Versions:
+  
+  1.  RUBY_VERSION      => 2.0.0
+      RUBY_DESCRIPTION  => ruby 2.0.0p247 (2013-06-27) [x86_64-darwin13.0.0]
+      Location          => /Users/cpetschnig/.rb/ruby-2.0.0-p247
+  
+  2.  RUBY_VERSION      => 1.9.3
+      RUBY_DESCRIPTION  => ruby 1.9.3p484 (2013-11-22 revision 43786) [x86_64-darwin13.0.0]
+      Location          => /Users/cpetschnig/.rb/ruby-1.9.3-p484
+  
+  OPTIONS:
+  -h, --help       Show this message
+  -v, --verbose    Be more chatty
+
+
+  $ switch-ruby 1
+  You are now using ruby 2.0.0p247 (2013-06-27) [x86_64-darwin13.0.0]
 
 == Preparing your System
 
-Create a directory, that will contain the symbolic links to your ruby
-executables:
+Create a directory, that will contain a symbolic link to your ruby /bin folder,
+where all Ruby executables lie:
 
-  $ sudo mkdir -p /usr/switch-ruby/bin
+  $ mkdir ~/.rb
+
+Create a directory where you put your Ruby source files into:
+
+  $ mkdir ~/.rb/src
+
+I prefer to leave all ruby-0.0.0-p000.tar.gz in the /cache directory:
+
+  $ mkdir ~/.rb/cache
   
 Now make sure it will be the first directory when looking for executables.
 Put the following line in your <tt>/etc/profile</tt> or <tt>~/.bash.rc</tt> files:
 
-  export PATH=/usr/switch-ruby/bin:$PATH
+  export PATH=$HOME/.rb/bin:$PATH
 
-+sudo+ should also use this +PATH+ setting. Add one more line to the file from above:
+Make your switch-ruby file executable on your system. You should know how to do this
+by youself.
 
-  alias sudo='sudo env PATH=$PATH'
+== Installing a new Ruby
 
-Copy the file <tt>switch-ruby</tt> into <tt>/usr/sbin</tt> and apply owner and mods:
+Download the Ruby source and put it into the ~/.rb/cache folder:
 
-  $ sudo cp ./switch-ruby /usr/switch-ruby/bin/
-  $ sudo chown root switch-ruby
-  $ sudo chgrp root switch-ruby
-  $ sudo chmod u+x switch-ruby
+  $ cd ~/.rb/cache
+  $ wget http://cache.ruby-lang.org/pub/ruby/2.0/ruby-2.0.0-p353.tar.gz
 
-The script works best, when you install every version of ruby into a separate
-directory:
+Extract it to the ~/.rb/src folder:
 
-  $ ./configure --prefix=/usr/local/ruby-1.9.1-p243
+  $ cd ~/.rb/src
+  $ tar xzvf ../cache/ruby-2.0.0-p353.tar.gz
 
-<tt>switch-ruby</tt> will search for a config file in the following order:
+Build and install Ruby:
 
-  /etc/switch-ruby.conf
-  ~/.switch-ruby.conf
-  ./switch-ruby.conf
+  $ ./configure --prefix=$HOME/.rb/ruby-2.0.0-p353
+  $ make
+  $ make install
 
-Edit the file of your choice and register the ruby versions of your system.
+The new Ruby will now be listed when you run
 
-
-== The Config File
-
-The config file has the YAML format.
-
-  # Create the symbolic links to rubys bin-path here:
-  path: /usr/switch-ruby/bin
-  
-  # Register the ruby versions installed on your system
-  1.8.6:   /usr/local/ruby-1.8.6-p383
-  1.8:     /usr/local/ruby-1.8.7-p174
-  1.9p0:   /usr/local/ruby-1.9.1-p0
-  1.9:     /usr/local/ruby-1.9.1-p243
-
+  $ switch-ruby
 
 == Command Line Arguments 
 

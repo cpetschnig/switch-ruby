@@ -13,7 +13,7 @@ end
 
 
 
-SR_BASE_DIR = ENV['SWITCH_RUBY_BASE_DIR'] || "#{ENV['HOME']}/.switch-ruby"
+SR_BASE_DIR = ENV['SWITCH_RUBY_BASE_DIR'] || "#{ENV['HOME']}/.rb"
 
 unless File.exist?(SR_BASE_DIR) && File.directory?(SR_BASE_DIR)
   # TODO: a lot!
