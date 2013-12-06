@@ -3,7 +3,7 @@
 == Usage
 
   $ switch-ruby
-  Usage: /usr/local/bin/switch-ruby [OPTION]... [Ruby Version index]
+  Usage: /Users/cpetschnig/bin/switch-ruby [OPTION]... [Ruby Version index]
   
   Available Ruby Versions:
   
